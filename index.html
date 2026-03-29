@@ -1,0 +1,124 @@
+<html>
+<head>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  padding: 20px;
+}
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.header {
+  background-color: #333;
+  color: #fff;
+  padding: 10px;
+  border-bottom: 1px solid #444;
+  border-radius: 10px 10px 0 0;
+}
+.header h1 {
+  margin: 0;
+}
+.input-container {
+  padding: 20px;
+}
+.input-container input[type="file"] {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+}
+.input-container button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #4CAF50;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.input-container button:hover {
+  background-color: #3e8e41;
+}
+.output-container {
+  padding: 20px;
+}
+.output-container textarea {
+  width: 100%;
+  height: 100px;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>Image Alt Text Generator Tool</h1>
+</div>
+<div class="input-container">
+<input type="file" id="imageInput" accept="image/*">
+<button onclick="generateAltText()">Generate Alt Text</button>
+</div>
+<div class="output-container">
+<textarea id="altTextOutput" readonly></textarea>
+</div>
+</div>
+<script>
+function generateAltText() {
+  const imageInput = document.getElementById('imageInput');
+  const altTextOutput = document.getElementById('altTextOutput');
+  const file = imageInput.files[0];
+  if (!file) {
+    altTextOutput.value = 'Please select an image file';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const imageData = reader.result;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      const altText = getAltTextFromImage(canvas);
+      altTextOutput.value = altText;
+    };
+    img.src = imageData;
+  };
+  reader.readAsDataURL(file);
+}
+
+function getAltTextFromImage(canvas) {
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+  const colors = {};
+  for (let i = 0; i < pixels.length; i += 4) {
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const color = `rgb(${r}, ${g}, ${b})`;
+    if (!colors[color]) {
+      colors[color] = 0;
+    }
+    colors[color]++;
+  }
+  const dominantColor = Object.keys(colors).reduce((a, b) => colors[a] > colors[b] ? a : b);
+  const dominantColorRGB = dominantColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  const dominantColorBrightness = (parseInt(dominantColorRGB[1]) * 299 + parseInt(dominantColorRGB[2]) * 587 + parseInt(dominantColorRGB[3]) * 114) / 1000;
+  const isDark = dominantColorBrightness < 128;
+  const contrastColor = isDark ? 'white' : 'black';
+  return `An image with a dominant color of ${dominantColor} and a contrast color of ${contrastColor}`;
+}
+</script>
+</body>
+</html>
